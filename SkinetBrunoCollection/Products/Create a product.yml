@@ -1,0 +1,36 @@
+info:
+  name: Create a product
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{host}}/product"
+  body:
+    type: json
+    data: |-
+      {}
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const { faker } = require('@faker-js/faker');
+
+        req.setBody({
+          name: faker.commerce.productName(),
+          description: faker.lorem.paragraph(),
+          price: Number(faker.commerce.price()),
+          pictureUrl: faker.image.url(),
+          type: "Some type",
+          brand: "Some brand",
+          quantityInStock: faker.number.int({ min: 1, max: 500 })
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

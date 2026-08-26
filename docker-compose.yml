@@ -1,0 +1,14 @@
+services:
+  sql:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: skinet-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "P4ssw0rd@1"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+
+volumes:
+  sql-data:

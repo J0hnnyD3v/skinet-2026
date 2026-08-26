@@ -1,0 +1,5 @@
+name: localhost
+variables:
+  - name: host
+    value: https://localhost:7075/api
+    description: ""
