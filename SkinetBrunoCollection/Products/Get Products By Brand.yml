@@ -1,11 +1,15 @@
 info:
-  name: Delete Product
+  name: Get Products By Brand
   type: http
-  seq: 5
+  seq: 8
 
 http:
-  method: DELETE
-  url: "{{host}}/product/3"
+  method: GET
+  url: "{{host}}/product?brand=React"
+  params:
+    - name: brand
+      value: React
+      type: query
   auth: inherit
 
 settings:

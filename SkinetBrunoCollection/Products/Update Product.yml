@@ -5,7 +5,7 @@ info:
 
 http:
   method: PUT
-  url: "{{host}}/product/2"
+  url: "{{host}}/product/3"
   body:
     type: json
     data: "{}"
@@ -18,7 +18,7 @@ runtime:
         const { faker } = require('@faker-js/faker');
 
         req.setBody({
-          id: 2,
+          id: 3,
           name: faker.commerce.productName(),
           description: faker.lorem.paragraph(),
           price: Number(faker.commerce.price()),

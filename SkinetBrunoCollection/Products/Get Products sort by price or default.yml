@@ -1,11 +1,15 @@
 info:
-  name: Get product by id
+  name: Get Products sort by price or default
   type: http
-  seq: 2
+  seq: 10
 
 http:
   method: GET
-  url: "{{host}}/product/3"
+  url: "{{host}}/product?type=boards"
+  params:
+    - name: type
+      value: boards
+      type: query
   auth: inherit
 
 settings:

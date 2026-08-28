@@ -1,11 +1,15 @@
 info:
-  name: Delete Product
+  name: Get Products By Type
   type: http
-  seq: 5
+  seq: 9
 
 http:
-  method: DELETE
-  url: "{{host}}/product/3"
+  method: GET
+  url: "{{host}}/product?type=boards"
+  params:
+    - name: type
+      value: boards
+      type: query
   auth: inherit
 
 settings:

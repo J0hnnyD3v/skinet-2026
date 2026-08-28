@@ -1,74 +1,93 @@
+using API.Errors;
 using Core.Entities;
-using Infrastructure.Data;
+using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers;
 
-public class ProductController : BaseApiController
+public class ProductController(IProductRepository repository) : BaseApiController
 {
-    private readonly StoreContext context;
-
-    public ProductController(StoreContext context)
-    {
-        this.context = context;
-    }
-
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+    public async Task<ActionResult> GetProducts(string? brand, string? type, string? sort)
     {
-        return await context.Products.ToListAsync();
+        var products = await repository.GetProductsAsync(brand, type, sort);
+
+        return ApiOk(products);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<Product>> GetProductById(int id)
+    public async Task<ActionResult> GetProductById(int id)
     {
-        var product = await context.Products.FindAsync(id);
+        var product = await repository.GetProductByIdAsync(id);
 
-        if (product == null) return NotFound();
-
-        return product;
+        return ApiOk(product);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Product>> CreateProduct(Product product)
+    public async Task<ActionResult> CreateProduct(Product product)
     {
-        context.Products.Add(product);
+        repository.AddProduct(product);
 
-        await context.SaveChangesAsync();
+        if (await repository.SaveChangesAsync())
+        {
+            return ApiCreated(product, nameof(GetProductById), new { id = product.Id }, "Product created successfully");
+        }
 
-        return product;
+        return ApiError(StatusCodes.Status400BadRequest, "Problem creating the product", ErrorCodes.Product.CreateError);
     }
 
     [HttpPut("{id:int}")]
     public async Task<ActionResult> UpdateProduct(int id, Product product)
     {
-        if (product.Id != id) return BadRequest("Product ID mismatch");
+        if (product.Id != id) return ApiError(StatusCodes.Status400BadRequest, "Product ID mismatch", ErrorCodes.Product.IdMismatch);
 
-        if (!ProductExists(id)) return NotFound();
+        if (!ProductExists(id)) return ApiError(StatusCodes.Status404NotFound, "Product not found", ErrorCodes.Product.NotFound);
 
-        context.Entry(product).State = EntityState.Modified;
-        await context.SaveChangesAsync();
+        repository.UpdateProduct(product);
 
-        return NoContent();
+        if (await repository.SaveChangesAsync())
+        {
+            return ApiOk(product, "Product updated successfully");
+        }
+
+        return ApiError(StatusCodes.Status400BadRequest, "Problem updating the product", ErrorCodes.Product.UpdateError);
     }
 
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteProduct(int id)
     {
-        var product = await context.Products.FindAsync(id);
+        var product = await repository.GetProductByIdAsync(id);
 
-        if (product == null) return NotFound();
+        if (product == null) return ApiError(StatusCodes.Status404NotFound, "Product not found", ErrorCodes.Product.NotFound);
 
-        context.Products.Remove(product);
+        repository.DeleteProduct(product);
 
-        await context.SaveChangesAsync();
+        if (await repository.SaveChangesAsync())
+        {
+            return ApiOk(product, "Product deleted successfully");
+        }
 
-        return NoContent();
+        return ApiError(StatusCodes.Status400BadRequest, "Problem deleting the product", ErrorCodes.Product.DeleteError);
+    }
+
+    [HttpGet("brands")]
+    public async Task<ActionResult> GetBrands()
+    {
+        var brands = await repository.GetBrandsAsync();
+
+        return ApiOk(brands);
+    }
+
+    [HttpGet("types")]
+    public async Task<ActionResult> GetTypes()
+    {
+        var types = await repository.GetTypesAsync();
+
+        return ApiOk(types);
     }
 
     private bool ProductExists(int id)
     {
-        return context.Products.Any(x => x.Id == id);
+        return repository.ProductExists(id);
     }
 }

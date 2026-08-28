@@ -1,11 +1,11 @@
 info:
-  name: Delete Product
+  name: Get Types
   type: http
-  seq: 5
+  seq: 7
 
 http:
-  method: DELETE
-  url: "{{host}}/product/3"
+  method: GET
+  url: "{{host}}/product/brands"
   auth: inherit
 
 settings:

@@ -8,8 +8,7 @@ http:
   url: "{{host}}/product"
   body:
     type: json
-    data: |-
-      {}
+    data: "{}"
   auth: inherit
 
 runtime:
