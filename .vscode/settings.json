@@ -23,8 +23,13 @@
     "titleBar.activeBackground": "#e4007c",
     "titleBar.activeForeground": "#e7e7e7",
     "titleBar.inactiveBackground": "#e4007c99",
-    "titleBar.inactiveForeground": "#e7e7e799"
+    "titleBar.inactiveForeground": "#e7e7e799",
+    "activityBar.activeBorder": "#e7e7e7",
+    "activityBarTop.activeBorder": "#e7e7e7"
   },
   "peacock.color": "#E4007C",
-  "editor.tabSize": 4
+  "editor.tabSize": 4,
+  "cSpell.words": [
+    "Dtos"
+  ]
 }

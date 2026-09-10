@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Mvc;
+
+using API.Dtos.Products;
 using API.Errors;
+using API.Extensions;
 using Core.Entities;
 using Core.Interfaces;
-using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
 
@@ -12,7 +15,10 @@ public class ProductController(IProductRepository repository) : BaseApiControlle
     {
         var products = await repository.GetProductsAsync(brand, type, sort);
 
-        return ApiOk(products);
+        // Select == .map() de JS/TS, pero perezoso: no recorre nada acá, se ejecuta cuando el
+        // serializador JSON consume la secuencia. ToDto es método de extensión (API/Extensions/
+        // ProductMappings.cs), de ahí el "using API.Extensions".
+        return ApiOk(products.Select(p => p.ToDto()));
     }
 
     [HttpGet("{id:int}")]
@@ -20,34 +26,59 @@ public class ProductController(IProductRepository repository) : BaseApiControlle
     {
         var product = await repository.GetProductByIdAsync(id);
 
-        return ApiOk(product);
+        if (product == null) return ApiError(StatusCodes.Status404NotFound, "Product not found", ErrorCodes.Product.NotFound);
+
+        return ApiOk(product.ToDto());
     }
 
     [HttpPost]
-    public async Task<ActionResult> CreateProduct(Product product)
+    public async Task<ActionResult> CreateProduct(CreateProductDto dto)
     {
+        var product = new Product
+        {
+            Name = dto.Name,
+            Description = dto.Description,
+            Price = dto.Price,
+            PictureUrl = dto.PictureUrl,
+            Type = dto.Type,
+            Brand = dto.Brand,
+            QuantityInStock = dto.QuantityInStock
+        };
+
         repository.AddProduct(product);
 
         if (await repository.SaveChangesAsync())
         {
-            return ApiCreated(product, nameof(GetProductById), new { id = product.Id }, "Product created successfully");
+            return ApiCreated(product.ToDto(), nameof(GetProductById), new { id = product.Id }, "Product created successfully");
         }
 
         return ApiError(StatusCodes.Status400BadRequest, "Problem creating the product", ErrorCodes.Product.CreateError);
     }
 
     [HttpPut("{id:int}")]
-    public async Task<ActionResult> UpdateProduct(int id, Product product)
+    public async Task<ActionResult> UpdateProduct(int id, UpdateProductDto dto)
     {
-        if (product.Id != id) return ApiError(StatusCodes.Status400BadRequest, "Product ID mismatch", ErrorCodes.Product.IdMismatch);
+        if (dto.Id != id) return ApiError(StatusCodes.Status400BadRequest, "Product ID mismatch", ErrorCodes.Product.IdMismatch);
 
-        if (!ProductExists(id)) return ApiError(StatusCodes.Status404NotFound, "Product not found", ErrorCodes.Product.NotFound);
+        if (!repository.ProductExists(id)) return ApiError(StatusCodes.Status404NotFound, "Product not found", ErrorCodes.Product.NotFound);
+
+        var product = new Product
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Description = dto.Description,
+            Price = dto.Price,
+            PictureUrl = dto.PictureUrl,
+            Type = dto.Type,
+            Brand = dto.Brand,
+            QuantityInStock = dto.QuantityInStock
+        };
 
         repository.UpdateProduct(product);
 
         if (await repository.SaveChangesAsync())
         {
-            return ApiOk(product, "Product updated successfully");
+            return ApiOk(product.ToDto(), "Product updated successfully");
         }
 
         return ApiError(StatusCodes.Status400BadRequest, "Problem updating the product", ErrorCodes.Product.UpdateError);
@@ -64,7 +95,7 @@ public class ProductController(IProductRepository repository) : BaseApiControlle
 
         if (await repository.SaveChangesAsync())
         {
-            return ApiOk(product, "Product deleted successfully");
+            return ApiOk(product.ToDto(), "Product deleted successfully");
         }
 
         return ApiError(StatusCodes.Status400BadRequest, "Problem deleting the product", ErrorCodes.Product.DeleteError);
@@ -84,10 +115,5 @@ public class ProductController(IProductRepository repository) : BaseApiControlle
         var types = await repository.GetTypesAsync();
 
         return ApiOk(types);
-    }
-
-    private bool ProductExists(int id)
-    {
-        return repository.ProductExists(id);
     }
 }

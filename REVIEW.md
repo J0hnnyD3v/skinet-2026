@@ -3,7 +3,6 @@
 ## 🔴 Alta (antes de exponer a un frontend real / prod)
 
 - [ ] **CORS sin gate de entorno** — `API/Program.cs` usa `AllowAnyOrigin/AnyMethod/AnyHeader` sin condicionar por `IsDevelopment()`. Restringir a los dominios reales del frontend antes de prod (`WithOrigins(...)`).
-- [ ] **DTOs para Create/Update Product** — `ProductController` recibe la entidad `Product` directo del body. El cliente controla campos que no debería (ej. `Id`). *(en progreso, lo hace John)*
 - [ ] **Credenciales en texto plano committeadas** — `API/appsettings.Development.json` está trackeado en git con la misma password de `docker-compose.yml` (`P4ssw0rd@1`). Es SQL local de dev, pero queda en el historial del repo. Mover a `dotnet user-secrets`/variable de entorno antes de que el repo tenga más historia o se haga público.
 
 ## 🟡 Media (mejoras antes de crecer con más recursos/auth)
@@ -21,6 +20,7 @@
 
 ## ✅ Ya resuelto
 
+- [x] **DTOs para Create/Update Product** — `CreateProductDto`/`UpdateProductDto` en `API/Dtos/Product/`, `ProductController` ya no bindea la entidad directo del body.
 - [x] Shadowing de `ProblemDetails.Status/Title` en `ApiErrorResponse`.
 - [x] Ruta hardcodeada del seed (`StoreContextSeed.cs`) — ahora usa `AppContext.BaseDirectory` + `CopyToOutputDirectory`.
 - [x] Auto-migrate/seed corría en cualquier entorno sin control — ahora gateado a `Development`, con `ILogger` en vez de `Console.WriteLine`.

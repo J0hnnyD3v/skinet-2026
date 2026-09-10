@@ -5,10 +5,10 @@ info:
 
 http:
   method: GET
-  url: "{{host}}/product?type=boards"
+  url: "{{host}}/product?sort=priceDesc"
   params:
-    - name: type
-      value: boards
+    - name: sort
+      value: priceDesc
       type: query
   auth: inherit
 
