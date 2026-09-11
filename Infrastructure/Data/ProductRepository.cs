@@ -28,7 +28,7 @@ public class ProductRepository(StoreContext context) : IProductRepository
         return await context.Products.FindAsync(id);
     }
 
-    public async Task<IReadOnlyList<Product>> GetProductsAsync(string? brand, string? type, string? sort)
+    public async Task<(IReadOnlyList<Product> Items, int Count)> GetProductsAsync(string? brand, string? type, string? sort, int pageIndex, int pageSize)
     {
         var query = context.Products.AsQueryable();
 
@@ -42,17 +42,23 @@ public class ProductRepository(StoreContext context) : IProductRepository
             query = query.Where(x => x.Type == type);
         }
 
-        if (!string.IsNullOrWhiteSpace(sort))
-        {
-            query = sort switch
-            {
-                "priceAsc" => query.OrderBy(x => x.Price),
-                "priceDesc" => query.OrderByDescending(x => x.Price),
-                _ => query.OrderBy(x => x.Name)
-            };
-        }
+        // El conteo se calcula sobre lo ya filtrado (brand/type) pero antes de paginar,
+        // porque es el total de resultados que existen para esos filtros, no solo de la página actual.
+        var count = await query.CountAsync();
 
-        return await query.ToListAsync();
+        query = sort switch
+        {
+            "priceAsc" => query.OrderBy(x => x.Price),
+            "priceDesc" => query.OrderByDescending(x => x.Price),
+            _ => query.OrderBy(x => x.Name)
+        };
+
+        var items = await query
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, count);
     }
 
     public async Task<IReadOnlyList<string>> GetTypesAsync()

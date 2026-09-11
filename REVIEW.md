@@ -8,7 +8,6 @@
 ## 🟡 Media (mejoras antes de crecer con más recursos/auth)
 
 - [ ] **`ErrorController.cs`** — `UseStatusCodePagesWithReExecute` dispara para cualquier status sin body (401, 403, 405...), pero solo mapea 404 y "todo lo demás → `ServerError`". Cuando agregues auth, sumar casos explícitos para 401/403.
-- [ ] **Sin paginación en `GetProducts`** — ya tiene filtrado (`brand`/`type`) y orden (`sort`), pero sin `pageIndex`/`pageSize`. No urge con pocos productos, pero crece mal si el catálogo aumenta.
 
 ## 🟢 Baja (housekeeping / no bloquea nada)
 
@@ -27,3 +26,4 @@
 - [x] Auto-migrate/seed corría en cualquier entorno sin control — ahora gateado a `Development`, con `ILogger` en vez de `Console.WriteLine`.
 - [x] `WeatherForecastController.cs` / `WeatherForecast.cs` (leftover del template) eliminados.
 - [x] CORS agregado (falta el punto de "Alta" de arriba: restringir en prod).
+- [x] **Paginación en `GetProducts`** — `pageIndex`/`pageSize` (default 1/6, tope `MaxPageSize=50`) resueltos en `ProductRepository` con `Skip`/`Take` antes de materializar la query; respuesta envuelta en `Pagination<T>` (`API/Dtos/Pagination.cs`). Ver README sección 13.

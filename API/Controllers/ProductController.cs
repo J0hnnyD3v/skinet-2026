@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
+using API.Dtos;
 using API.Dtos.Products;
 using API.Errors;
 using API.Extensions;
@@ -10,15 +11,22 @@ namespace API.Controllers;
 
 public class ProductController(IProductRepository repository) : BaseApiController
 {
+    private const int MaxPageSize = 50;
+
     [HttpGet]
-    public async Task<ActionResult> GetProducts(string? brand, string? type, string? sort)
+    public async Task<ActionResult> GetProducts(string? brand, string? type, string? sort, int pageIndex = 1, int pageSize = 6)
     {
-        var products = await repository.GetProductsAsync(brand, type, sort);
+        pageIndex = Math.Max(pageIndex, 1);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+        var (products, count) = await repository.GetProductsAsync(brand, type, sort, pageIndex, pageSize);
 
         // Select == .map() de JS/TS, pero perezoso: no recorre nada acá, se ejecuta cuando el
         // serializador JSON consume la secuencia. ToDto es método de extensión (API/Extensions/
         // ProductMappings.cs), de ahí el "using API.Extensions".
-        return ApiOk(products.Select(p => p.ToDto()));
+        var dtos = products.Select(p => p.ToDto()).ToList();
+
+        return ApiOk(new Pagination<ProductDto>(pageIndex, pageSize, count, dtos));
     }
 
     [HttpGet("{id:int}")]

@@ -831,6 +831,89 @@ Una sola fuente de verdad para las reglas. Contrapartida: acopla ambos DTOs; si 
 
 ---
 
+### 13. Paginación (`GET /api/product`)
+
+`GetProducts` devolvía **todos** los productos que matcheaban `brand`/`type`/`sort` en una sola respuesta. No urgía con 20 productos de seed, pero crece mal con un catálogo real. Se agregó paginación con `pageIndex`/`pageSize`.
+
+#### Dónde va el corte — repositorio, no controller
+
+`Skip`/`Take` se traducen a SQL (`OFFSET`/`FETCH`) solo si se aplican **antes** de materializar el `IQueryable` con `ToListAsync()`. Si se paginara en el controller sobre una `List<Product>` ya traída completa, EF Core habría descargado la tabla entera igual — la paginación no serviría de nada. Por eso `pageIndex`/`pageSize` bajan hasta `ProductRepository`, no se resuelven en el controller.
+
+#### El conteo va antes de paginar, después de filtrar
+
+```csharp
+var query = context.Products.AsQueryable();
+// ...Where de brand/type...
+
+var count = await query.CountAsync();   // total de resultados para estos filtros
+
+query = sort switch { /* OrderBy */ };  // el orden no cambia cuántos hay
+
+var items = await query
+    .Skip((pageIndex - 1) * pageSize)
+    .Take(pageSize)
+    .ToListAsync();
+```
+
+`count` tiene que ser el total de productos que matchean el filtro, no el total de la tabla ni el tamaño de la página actual — si no, el cliente no puede calcular cuántas páginas hay. Por eso se cuenta sobre `query` ya filtrada pero antes de `Skip`/`Take`. Contarlo antes o después del `OrderBy` da igual (ordenar no agrega ni quita filas), pero se dejó antes por claridad.
+
+`IProductRepository.GetProductsAsync` ahora devuelve una tupla `(IReadOnlyList<Product> Items, int Count)` en vez de solo la lista — sin crear una clase nueva en `Core` solo para cargar dos valores.
+
+#### Saneamiento de `pageIndex`/`pageSize` en el controller
+
+```csharp
+private const int MaxPageSize = 50;
+
+pageIndex = Math.Max(pageIndex, 1);
+pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+```
+
+No se confía en lo que llega en la query string:
+
+- **`Math.Max(pageIndex, 1)`** — si mandan `pageIndex=0` o negativo, `Skip((0-1)*6)` sería `Skip(-6)`, y `Skip` no acepta negativos (EF Core lanza excepción). Se fuerza a `1`.
+- **`Math.Clamp(pageSize, 1, MaxPageSize)`** — acota entre `1` y `50`. Por abajo evita `Take(0)`/`Take(-5)`; por arriba evita que alguien pida `pageSize=9999` y traiga el catálogo completo de un solo request (carga innecesaria a la DB y a la red).
+
+Es la misma idea de *fail fast*/*guard clause*: sanear la entrada en el borde antes de que un valor inválido se propague al `Skip`/`Take`.
+
+#### Envoltorio de respuesta — `Pagination<T>`
+
+```csharp
+public class Pagination<T>(int pageIndex, int pageSize, int count, IReadOnlyList<T> items)
+{
+    public int PageIndex { get; set; } = pageIndex;
+    public int PageSize { get; set; } = pageSize;
+    public int Count { get; set; } = count;
+    public IReadOnlyList<T> Items { get; set; } = items;
+}
+```
+
+Vive en `API/Dtos/Pagination.cs` (no en `API/Dtos/Products/`) porque no es específico de `Product` — cualquier lista paginada de la API puede reutilizarlo.
+
+El campo se llama `Items`, no `Data`. `ApiResponse<T>` ya envuelve toda respuesta 2xx en un campo `data` (ver sección 3); si `Pagination<T>` también usara `Data` para su lista, el JSON final tendría `data.data` — el mismo nombre significando dos cosas distintas en dos niveles (*property stuttering*). Con `Items` queda `data.items`, sin ambigüedad:
+
+```json
+{
+  "statusCode": 200,
+  "message": "Request successful",
+  "data": {
+    "pageIndex": 1,
+    "pageSize": 6,
+    "count": 20,
+    "items": [ /* productos de esta página */ ]
+  }
+}
+```
+
+#### Uso
+
+```
+GET /api/product?pageIndex=2&pageSize=10&brand=Nike&sort=priceDesc
+```
+
+Defaults si se omiten: `pageIndex=1`, `pageSize=6`.
+
+---
+
 ### Pendientes
 
 Ver `REVIEW.md` en la raíz del repo — lista de mejoras abiertas clasificadas por urgencia (CORS sin restringir por entorno, falta de DTOs en los endpoints de `Product`, etc).
