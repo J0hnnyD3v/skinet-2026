@@ -8,7 +8,6 @@
 ## 🟡 Media (mejoras antes de crecer con más recursos/auth)
 
 - [ ] **`ErrorController.cs`** — `UseStatusCodePagesWithReExecute` dispara para cualquier status sin body (401, 403, 405...), pero solo mapea 404 y "todo lo demás → `ServerError`". Cuando agregues auth, sumar casos explícitos para 401/403.
-- [ ] **Validación de datos en `Product`** — sin `[Range]`/reglas en `Price`, `QuantityInStock`, etc. (Core/Entities/Product.cs).
 - [ ] **Sin paginación en `GetProducts`** — ya tiene filtrado (`brand`/`type`) y orden (`sort`), pero sin `pageIndex`/`pageSize`. No urge con pocos productos, pero crece mal si el catálogo aumenta.
 
 ## 🟢 Baja (housekeeping / no bloquea nada)
@@ -20,7 +19,9 @@
 
 ## ✅ Ya resuelto
 
-- [x] **DTOs para Create/Update Product** — `CreateProductDto`/`UpdateProductDto` en `API/Dtos/Product/`, `ProductController` ya no bindea la entidad directo del body.
+- [x] **DTOs en todos los endpoints de Product** — `CreateProductDto`/`UpdateProductDto` (entrada) + `ProductDto` (salida) en `API/Dtos/Products/`, mapeo con `ProductMappings.ToDto()`. `ProductController` ya no bindea ni devuelve la entidad `Product` en ninguna dirección.
+- [x] **Falsos positivos de `IDE0005` en VS Code** — `GenerateDocumentationFile` + `NoWarn CS1591` en `API/API.csproj`.
+- [x] **Validación de datos en `Product`** — DataAnnotations (`[Required]`/`[MaxLength]`/`[Range]`/`[Url]`) en `CreateProductDto`; `UpdateProductDto` hereda de él + valida `Id`. Se puso en los DTOs de `API`, no en la entidad de `Core` (el dominio no depende de reglas de presentación). El `400` sale por la `InvalidModelStateResponseFactory` ya existente.
 - [x] Shadowing de `ProblemDetails.Status/Title` en `ApiErrorResponse`.
 - [x] Ruta hardcodeada del seed (`StoreContextSeed.cs`) — ahora usa `AppContext.BaseDirectory` + `CopyToOutputDirectory`.
 - [x] Auto-migrate/seed corría en cualquier entorno sin control — ahora gateado a `Development`, con `ILogger` en vez de `Console.WriteLine`.

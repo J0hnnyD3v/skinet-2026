@@ -1,13 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace API.Dtos.Products;
 
-public class UpdateProductDto
+// Hereda Name/Description/Price/PictureUrl/Type/Brand/QuantityInStock con su validación.
+// Solo agrega el Id, que el controller contrasta contra el de la ruta.
+public class UpdateProductDto : CreateProductDto
 {
+    [Range(1, int.MaxValue, ErrorMessage = "El Id debe ser mayor que 0.")]
     public int Id { get; set; }
-    public required string Name { get; set; }
-    public required string Description { get; set; }
-    public decimal Price { get; set; }
-    public required string PictureUrl { get; set; }
-    public required string Type { get; set; }
-    public required string Brand { get; set; }
-    public int QuantityInStock { get; set; }
 }

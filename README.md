@@ -330,7 +330,7 @@ dotnet run --project API
 
 ## Sección: API Architecture
 
-Resumen de todo lo implementado en esta sección: patrón repositorio, un contrato de respuesta estándar (éxito y error) reutilizable para toda la API, códigos de error propios, CORS, filtrado/orden de productos, y varios fixes de robustez sobre lo construido en API Basics.
+Resumen de todo lo implementado en esta sección: patrón repositorio, un contrato de respuesta estándar (éxito y error) reutilizable para toda la API, códigos de error propios, DTOs de entrada/salida en los endpoints de `Product` con validación por DataAnnotations, CORS, filtrado/orden de productos, y varios fixes de robustez sobre lo construido en API Basics.
 
 ### Objetivo
 
@@ -657,6 +657,177 @@ app.UseCors(CorsPolicy);
 ### 9. Nota sobre IDs no consecutivos del seed data
 
 Se observó que los IDs del seed/generados por SQL Server saltan de a miles (`1, 4, 5, 6, ... 1002, 1003, ...`) en vez de ser estrictamente consecutivos. No es un bug del código: SQL Server cachea bloques de valores `IDENTITY` (~1000 por defecto) para rendimiento; si el servicio se reinicia o hay un rollback, los valores cacheados no usados se pierden y el próximo insert salta al siguiente bloque. Es cosmético — los IDs son solo PK, no importan sus valores mientras sean únicos.
+
+---
+
+### 10. DTOs en los endpoints de `Product` (entrada y salida)
+
+Antes `ProductController` bindeaba y devolvía la entidad `Core.Entities.Product` directo. Problemas: acopla el contrato HTTP al modelo de dominio (cualquier cambio en la entidad rompe al cliente), expone campos que el cliente no debería setear (`Id` en el create) y obliga a mandar todas las propiedades `required` aunque no apliquen a la operación.
+
+Se agregaron tres DTOs en `API/Dtos/Products/`:
+
+| DTO | Uso | Diferencia con la entidad |
+|---|---|---|
+| `CreateProductDto` | body de `POST /api/product` | sin `Id` |
+| `UpdateProductDto` | body de `PUT /api/product/{id}` | con `Id` (se valida contra el de la ruta) |
+| `ProductDto` | payload de salida en todos los GET / POST / PUT | espejo de la entidad, pero desacoplado del dominio |
+
+El mapeo entidad → DTO es un método de extensión, `API/Extensions/ProductMappings.cs`:
+
+```csharp
+public static class ProductMappings
+{
+    public static ProductDto ToDto(this Product product) => new()
+    {
+        Id = product.Id,
+        Name = product.Name,
+        Description = product.Description,
+        Price = product.Price,
+        PictureUrl = product.PictureUrl,
+        Type = product.Type,
+        Brand = product.Brand,
+        QuantityInStock = product.QuantityInStock
+    };
+}
+```
+
+El controller ya no expone la entidad en ninguna dirección:
+
+```csharp
+[HttpGet]
+public async Task<ActionResult> GetProducts(string? brand, string? type, string? sort)
+{
+    var products = await repository.GetProductsAsync(brand, type, sort);
+    return ApiOk(products.Select(p => p.ToDto()));   // Select perezoso: se materializa al serializar
+}
+
+[HttpPost]
+public async Task<ActionResult> CreateProduct(CreateProductDto dto)
+{
+    var product = new Product { Name = dto.Name, /* ...resto de campos... */ };
+    repository.AddProduct(product);
+
+    if (await repository.SaveChangesAsync())
+        return ApiCreated(product.ToDto(), nameof(GetProductById), new { id = product.Id }, "Product created successfully");
+
+    return ApiError(StatusCodes.Status400BadRequest, "Problem creating the product", ErrorCodes.Product.CreateError);
+}
+```
+
+El mapeo se dejó manual (sin AutoMapper / Mapster): una entidad, pocos campos; una librería de mapeo agrega dependencia y magia en runtime sin ganancia real a esta escala.
+
+> `GetBrands` / `GetTypes` siguen devolviendo `IReadOnlyList<string>` directo — son valores primitivos, no necesitan DTO.
+
+Combinado con el contrato de respuesta (sección 3), un `GET /api/product/1` ahora responde:
+
+```json
+{
+  "statusCode": 200,
+  "message": "Request successful",
+  "data": {
+    "id": 1,
+    "name": "Angular Speedster Board 2000",
+    "price": 100.00,
+    "pictureUrl": "...",
+    "type": "Boards",
+    "brand": "Angular",
+    "quantityInStock": 100
+  }
+}
+```
+
+Con esto queda cerrado el ítem de `REVIEW.md` sobre "falta de DTOs en los endpoints de `Product`" (antes solo estaban los de create/update).
+
+---
+
+### 11. Falsos positivos de `IDE0005` en VS Code — `GenerateDocumentationFile`
+
+El analizador `IDE0005` ("using directive is unnecessary") de Roslyn no se ejecuta a nivel de compilación completa si el proyecto no genera el archivo de documentación XML. Sin él, el language server de C# en VS Code marca **todos** los `using` como innecesarios, pero al quitarlos el build real falla (`CS0246`).
+
+Fix en `API/API.csproj`:
+
+```xml
+<GenerateDocumentationFile>true</GenerateDocumentationFile>
+<NoWarn>$(NoWarn);CS1591</NoWarn>
+```
+
+`CS1591` (falta comentario XML en miembro público) se silencia: no se documenta la API con XML docs, solo se quería habilitar el analizador de usings. Tras el cambio hay que recargar la ventana de VS Code para que el servidor de C# tome la nueva configuración.
+
+---
+
+### 12. Validación de entrada con DataAnnotations en los DTOs
+
+Los DTOs de create/update no tenían ninguna regla: `Price` podía ser `0` o negativo, `PictureUrl` cualquier string, los textos sin límite de largo. Se agregaron atributos de `System.ComponentModel.DataAnnotations`.
+
+#### Dónde va la validación — DTO, no entidad
+
+Las reglas van en `CreateProductDto`/`UpdateProductDto` (capa `API`), **no** en `Core.Entities.Product`. `Core` no debe depender de reglas de presentación: qué es un input válido para un endpoint HTTP es un asunto de la API, no del dominio. Además `DataAnnotations` de validación solo las mira MVC al bindear un body; en la entidad no harían nada útil.
+
+#### Las tres capas que ya estaban enchufadas
+
+1. **`[ApiController]`** (en `BaseApiController`) valida el modelo *antes* de entrar al método. Si falla, corta y devuelve `400` sin ejecutar el código del controller.
+2. La **`InvalidModelStateResponseFactory`** (sección 6) traduce ese `400` al contrato `ApiErrorResponse`.
+3. Los mensajes de cada atributo terminan en `Details` (solo en `Development`).
+
+Por eso alcanzó con agregar atributos: no se tocó ni el controller ni `Program.cs`.
+
+#### `required` (palabra clave) vs `[Required]` (atributo)
+
+Son capas distintas y se usan las dos:
+
+| | `required` (C#) | `[Required]` |
+|---|---|---|
+| Actúa en | deserialización (System.Text.Json) | validación de modelo (MVC) |
+| Detecta | propiedad **ausente** del body | `null` **y** string vacío `""` |
+
+`{ "name": "" }` pasa el `required` (la propiedad está) pero lo frena `[Required]`.
+
+#### Atributos aplicados (`CreateProductDto`)
+
+```csharp
+[Required, MaxLength(100)]          public required string Name { get; set; }
+[Required, MaxLength(1000)]         public required string Description { get; set; }
+[Range(0.01, 999999.99)]           public decimal Price { get; set; }
+[Required, Url, MaxLength(2048)]    public required string PictureUrl { get; set; }
+[Required, MaxLength(100)]          public required string Type { get; set; }
+[Required, MaxLength(100)]          public required string Brand { get; set; }
+[Range(0, int.MaxValue)]           public int QuantityInStock { get; set; }
+```
+
+- `Price`/`QuantityInStock` no llevan `[Required]`: son value types no-nulables, nunca llegan "vacíos"; el `[Range]` cubre el "positivo".
+- Los literales de `[Range]` sobre `decimal` son `double` y el atributo los convierte. La variante estricta sería `[Range(typeof(decimal), "0.01", "999999.99")]` (parsea el string sin pasar por `double`; en .NET 10 usa cultura invariante por defecto).
+- En `ErrorMessage`, `{0}` = nombre del campo, `{1}`/`{2}` = límites del `Range`.
+
+#### `UpdateProductDto` hereda, no duplica
+
+`UpdateProductDto` tenía exactamente los mismos campos que `CreateProductDto` más `Id`. En vez de copiar campos y atributos:
+
+```csharp
+public class UpdateProductDto : CreateProductDto
+{
+    [Range(1, int.MaxValue)]
+    public int Id { get; set; }
+}
+```
+
+Una sola fuente de verdad para las reglas. Contrapartida: acopla ambos DTOs; si algún día divergen (p. ej. update no permite cambiar `Brand`) hay que romper la herencia, probablemente hacia una base `abstract ProductInputDto`. Hoy son idénticos salvo `Id`, así que herencia directa alcanza.
+
+`ProductDto` (salida) queda sin atributos: el cliente lo recibe, nunca lo envía.
+
+#### Respuesta ante un body inválido
+
+`POST /api/product` con `{ "price": 0, "pictureUrl": "abc", ... }`:
+
+```json
+{
+  "title": "Validation failed",
+  "status": 400,
+  "errorCode": "VALIDATION_ERROR",
+  "details": "El precio debe estar entre 0.01 y 999999.99. | The PictureUrl field is not a valid fully-qualified http, https, or ftp URL."
+}
+```
+
+`details` solo en `Development`; en otro entorno, únicamente `title` + `errorCode`.
 
 ---
 
