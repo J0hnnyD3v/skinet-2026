@@ -5,7 +5,11 @@ info:
 
 http:
   method: GET
-  url: "{{host}}/product"
+  url: "{{host}}/product?pageSize=300"
+  params:
+    - name: pageSize
+      value: "300"
+      type: query
   auth: inherit
 
 settings:

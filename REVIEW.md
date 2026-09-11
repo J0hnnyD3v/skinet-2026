@@ -2,7 +2,7 @@
 
 ## 🔴 Alta (antes de exponer a un frontend real / prod)
 
-- [ ] **CORS sin gate de entorno** — `API/Program.cs` usa `AllowAnyOrigin/AnyMethod/AnyHeader` sin condicionar por `IsDevelopment()`. Restringir a los dominios reales del frontend antes de prod (`WithOrigins(...)`).
+- [ ] **`appsettings.Production.json` no existe** — `Cors:AllowedOrigins` en `appsettings.json` (base) está vacío a propósito (fail-closed), así que hoy CORS bloquea todo en cualquier deploy sin gatear por entorno. Cuando exista el dominio real del frontend (Angular o React, aún sin decidir), crear `appsettings.Production.json` con ese origen, o setear la variable de entorno `Cors__AllowedOrigins__0=https://tudominio.com` en el servidor — nunca commitear el dominio real directo en `appsettings.json`.
 - [ ] **Credenciales en texto plano committeadas** — `API/appsettings.Development.json` está trackeado en git con la misma password de `docker-compose.yml` (`P4ssw0rd@1`). Es SQL local de dev, pero queda en el historial del repo. Mover a `dotnet user-secrets`/variable de entorno antes de que el repo tenga más historia o se haga público.
 
 ## 🟡 Media (mejoras antes de crecer con más recursos/auth)
@@ -25,5 +25,5 @@
 - [x] Ruta hardcodeada del seed (`StoreContextSeed.cs`) — ahora usa `AppContext.BaseDirectory` + `CopyToOutputDirectory`.
 - [x] Auto-migrate/seed corría en cualquier entorno sin control — ahora gateado a `Development`, con `ILogger` en vez de `Console.WriteLine`.
 - [x] `WeatherForecastController.cs` / `WeatherForecast.cs` (leftover del template) eliminados.
-- [x] CORS agregado (falta el punto de "Alta" de arriba: restringir en prod).
+- [x] **CORS restringido por entorno** — `Program.cs` lee `Cors:AllowedOrigins` de config y usa `WithOrigins(...)` en vez de `AllowAnyOrigin()`. Dev cubre `localhost:4200`/`:5173` en http y https (Angular/React aún sin decidir); base/prod queda vacío a propósito (ver pendiente "Alta" arriba: falta `appsettings.Production.json`).
 - [x] **Paginación en `GetProducts`** — `pageIndex`/`pageSize` (default 1/6, tope `MaxPageSize=50`) resueltos en `ProductRepository` con `Skip`/`Take` antes de materializar la query; respuesta envuelta en `Pagination<T>` (`API/Dtos/Pagination.cs`). Ver README sección 13.
