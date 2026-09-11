@@ -14,12 +14,12 @@ public class ProductController(IProductRepository repository) : BaseApiControlle
     private const int MaxPageSize = 50;
 
     [HttpGet]
-    public async Task<ActionResult> GetProducts(string? brand, string? type, string? sort, int pageIndex = 1, int pageSize = 6)
+    public async Task<ActionResult> GetProducts(string? brand, string? type, string? sort, string? search, int pageIndex = 1, int pageSize = 6)
     {
         pageIndex = Math.Max(pageIndex, 1);
         pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
-        var (products, count) = await repository.GetProductsAsync(brand, type, sort, pageIndex, pageSize);
+        var (products, count) = await repository.GetProductsAsync(brand, type, sort, search, pageIndex, pageSize);
 
         // Select == .map() de JS/TS, pero perezoso: no recorre nada acá, se ejecuta cuando el
         // serializador JSON consume la secuencia. ToDto es método de extensión (API/Extensions/

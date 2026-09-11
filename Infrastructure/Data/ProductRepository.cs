@@ -28,7 +28,7 @@ public class ProductRepository(StoreContext context) : IProductRepository
         return await context.Products.FindAsync(id);
     }
 
-    public async Task<(IReadOnlyList<Product> Items, int Count)> GetProductsAsync(string? brand, string? type, string? sort, int pageIndex, int pageSize)
+    public async Task<(IReadOnlyList<Product> Items, int Count)> GetProductsAsync(string? brand, string? type, string? sort, string? search, int pageIndex, int pageSize)
     {
         var query = context.Products.AsQueryable();
 
@@ -40,6 +40,11 @@ public class ProductRepository(StoreContext context) : IProductRepository
         if (!string.IsNullOrWhiteSpace(type))
         {
             query = query.Where(x => x.Type == type);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(x => x.Name.Contains(search) || x.Description.Contains(search));
         }
 
         // El conteo se calcula sobre lo ya filtrado (brand/type) pero antes de paginar,

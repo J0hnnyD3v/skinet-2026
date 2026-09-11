@@ -14,7 +14,7 @@
 - [ ] **`JsonSerializerOptions` recreado por excepción** en `ExceptionMiddleware.cs:25` — moverlo a `static readonly`.
 - [ ] **Sin tests** — ni unitarios ni de integración todavía.
 - [ ] **`GetBrands`/`GetTypes` sin cache** — pegan a la DB (`SELECT DISTINCT`) en cada request; cambian poco, buen candidato a cachear en memoria si el catálogo escala.
-- [ ] **Filtro `brand`/`type` es igualdad exacta** (`ProductRepository.cs`) — depende de la collation de SQL Server para case-insensitivity, sin normalización explícita en código.
+- [ ] **Filtro `brand`/`type`/`search` depende de la collation de SQL Server** (`ProductRepository.cs`) — igualdad exacta (`brand`/`type`) y `Contains` (`search`) confían en que la DB use collation case-insensitive (confirmado hoy: `SQL_Latin1_General_CP1_CI_AS`), sin normalización explícita en código. Si algún día cambia la collation de la DB, esto se rompe silenciosamente.
 
 ## ✅ Ya resuelto
 
