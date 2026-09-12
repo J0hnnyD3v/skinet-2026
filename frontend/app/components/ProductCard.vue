@@ -5,6 +5,13 @@ const { product } = defineProps<{ product: Product }>()
 
 const imageFailed = ref(false)
 
+const config = useRuntimeConfig()
+
+const imageUrl = computed(() => {
+  const apiOrigin = config.public.apiBase.replace(/\/api\/?$/, '')
+  return `${apiOrigin}${product.pictureUrl}`
+})
+
 const formattedPrice = computed(() =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(product.price)
 )
@@ -16,7 +23,7 @@ const formattedPrice = computed(() =>
       <div class="aspect-square flex items-center justify-center bg-muted rounded-md overflow-hidden">
         <img
           v-if="!imageFailed"
-          :src="product.pictureUrl"
+          :src="imageUrl"
           :alt="product.name"
           class="w-full h-full object-cover"
           @error="imageFailed = true"
