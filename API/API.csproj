@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -8,6 +8,7 @@
         sin esto marca todos los usings como falsos positivos. CS1591 = falta doc XML en miembros públicos. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <UserSecretsId>601758e0-1975-4ed9-a831-5f1a91803ecf</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
