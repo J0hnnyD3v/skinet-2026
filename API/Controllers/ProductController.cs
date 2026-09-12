@@ -14,7 +14,7 @@ public class ProductController(IProductRepository repository) : BaseApiControlle
     private const int MaxPageSize = 50;
 
     [HttpGet]
-    public async Task<ActionResult> GetProducts(string? brand, string? type, string? sort, string? search, int pageIndex = 1, int pageSize = 6)
+    public async Task<ActionResult> GetProducts(string? brand, string? type, string? sort, string? search, int pageIndex = 1, int pageSize = 10)
     {
         pageIndex = Math.Max(pageIndex, 1);
         pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
