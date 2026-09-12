@@ -10,7 +10,6 @@
 
 ## 🟢 Baja (housekeeping / no bloquea nada)
 
-- [ ] **`JsonSerializerOptions` recreado por excepción** en `ExceptionMiddleware.cs:25` — moverlo a `static readonly`.
 - [ ] **Sin tests** — ni unitarios ni de integración todavía.
 - [ ] **`GetBrands`/`GetTypes` sin cache** — pegan a la DB (`SELECT DISTINCT`) en cada request; cambian poco, buen candidato a cachear en memoria si el catálogo escala.
 - [ ] **Filtro `brand`/`type`/`search` depende de la collation de SQL Server** (`ProductRepository.cs`) — igualdad exacta (`brand`/`type`) y `Contains` (`search`) confían en que la DB use collation case-insensitive (confirmado hoy: `SQL_Latin1_General_CP1_CI_AS`), sin normalización explícita en código. Si algún día cambia la collation de la DB, esto se rompe silenciosamente.
@@ -35,3 +34,4 @@
 - [x] **CORS restringido por entorno** — `Program.cs` lee `Cors:AllowedOrigins` de config y usa `WithOrigins(...)` en vez de `AllowAnyOrigin()`. Dev cubre `localhost:4200`/`:5173` en http y https (Angular/React aún sin decidir); base/prod queda vacío a propósito (ver pendiente "Alta" arriba: falta `appsettings.Production.json`).
 - [x] **Credenciales fuera de archivos trackeados** — connection string movida a `dotnet user-secrets` (`API.csproj` solo tiene el `UserSecretsId`, sin secretos); `MSSQL_SA_PASSWORD` de `docker-compose.yml` movida a `.env` (gitignorado) + `.env.example` con placeholder para quien clone el repo.
 - [x] **Paginación en `GetProducts`** — `pageIndex`/`pageSize` (default 1/6, tope `MaxPageSize=50`) resueltos en `ProductRepository` con `Skip`/`Take` antes de materializar la query; respuesta envuelta en `Pagination<T>` (`API/Dtos/Pagination.cs`). Ver README sección 13.
+- [x] **`JsonSerializerOptions` recreado por excepción** en `ExceptionMiddleware.cs` — ahora es `static readonly JsonOptions`, se crea una sola vez en vez de en cada excepción.

@@ -5,6 +5,8 @@ namespace API.Middleware;
 
 public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IHostEnvironment env)
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -22,8 +24,7 @@ public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddlewa
                 ? new ApiErrorResponse(context.Response.StatusCode, ex.Message, ErrorCodes.General.ServerError, ex.StackTrace)
                 : new ApiErrorResponse(context.Response.StatusCode, errorCode: ErrorCodes.General.ServerError);
 
-            var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            var json = JsonSerializer.Serialize(response, options);
+            var json = JsonSerializer.Serialize(response, JsonOptions);
 
             await context.Response.WriteAsync(json);
         }
