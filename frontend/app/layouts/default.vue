@@ -1,37 +1,79 @@
 <template>
-  <UHeader>
-    <template #left>
-      <NuxtLink
-        to="/"
-        class="focus-visible:outline-3 outline-primary/25 rounded-md p-1 -ms-1"
-      >
-        <AppLogo class="w-auto h-6 shrink-0" />
-      </NuxtLink>
+  <section>
+    <UHeader>
+      <template #left>
+        <NuxtLink
+          to="/"
+          class="focus-visible:outline-3 outline-primary/25 rounded-md p-1 -ms-1"
+        >
+          <AppLogo />
+        </NuxtLink>
 
-      <NuxtLink to="/" class="text-sm font-medium">
-        Home
-      </NuxtLink>
-    </template>
+        <NuxtLink
+          to="/"
+          class="text-sm font-medium"
+        >
+          Home
+        </NuxtLink>
 
-    <template #right>
-      <!-- Espacio reservado para el ícono de carrito (spec futuro) -->
-      <div />
+        <NuxtLink
+          to="/shop"
+          class="text-sm font-medium"
+        >
+          Shop
+        </NuxtLink>
 
-      <UColorModeButton />
-    </template>
-  </UHeader>
+        <NuxtLink
+          to="/contact"
+          class="text-sm font-medium"
+        >
+          Contact
+        </NuxtLink>
+      </template>
 
-  <UMain>
-    <slot />
-  </UMain>
+      <template #right>
+        <UChip
+          text="0"
+          size="3xl"
+        >
+          <UButton
+            icon="i-lucide-shopping-cart"
+            aria-label="Carrito"
+            color="neutral"
+            variant="ghost"
+          />
+        </UChip>
 
-  <USeparator icon="i-simple-icons-nuxtdotjs" />
+        <UDropdownMenu
+          :items="[[
+            { label: 'Login', to: '/login' },
+            { label: 'Register', to: '/register' }
+          ]]"
+        >
+          <UButton
+            icon="i-lucide-circle-user"
+            aria-label="Usuario"
+            color="neutral"
+            variant="ghost"
+          />
+        </UDropdownMenu>
 
-  <UFooter>
-    <template #left>
-      <p class="text-sm text-muted">
-        © Skinet {{ new Date().getFullYear() }}
-      </p>
-    </template>
-  </UFooter>
+        <UColorModeButton />
+      </template>
+    </UHeader>
+
+    <UMain>
+      <slot />
+    </UMain>
+
+    <USeparator icon="i-simple-icons-nuxtdotjs" />
+
+    <UFooter>
+      <template #left>
+        <p class="text-sm text-muted">
+          © Skinet {{ new Date().getFullYear() }}
+        </p>
+      </template>
+    </UFooter>
+  </section>
 </template>

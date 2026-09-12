@@ -1,6 +1,6 @@
 # SPEC 01 — Layout principal del frontend
 
-> **Status:** Aprobada
+> **Status:** Implementada
 > **Depends on:** —
 > **Date:** 2026-09-12
 > **Objective:** Reemplazar el scaffold genérico de Nuxt UI por un layout principal (`app/layouts/default.vue`) con header, footer y navegación mínima propios de Skinet.
@@ -54,14 +54,14 @@ Esta spec no introduce estructuras de datos nuevas. Es puramente de UI/estructur
 
 ## Acceptance criteria
 
-- [ ] `app/layouts/default.vue` existe y `app.vue` lo usa vía `<NuxtLayout>`.
-- [ ] El header muestra: logo, link "Home", espacio reservado vacío, y el toggle de tema — sin el dropdown de templates ni el botón de GitHub.
-- [ ] El footer muestra únicamente `© Skinet {año actual}`.
-- [ ] `app/components/TemplateMenu.vue` ya no existe en el repo.
-- [ ] `app/pages/index.vue` no contiene el Hero/features/CTA del template original.
-- [ ] El `<title>` de la página es "Skinet" y la descripción SEO ya no menciona "Nuxt Starter Template".
-- [ ] No hay referencias rotas a `TemplateMenu` ni a assets del template (ej. `ogImage` del starter) en el código.
-- [ ] La app levanta sin errores en consola del navegador ni del servidor de desarrollo.
+- [x] `app/layouts/default.vue` existe y `app.vue` lo usa vía `<NuxtLayout>`.
+- [x] El header muestra: logo, link "Home", espacio reservado vacío, y el toggle de tema — sin el dropdown de templates ni el botón de GitHub.
+- [x] El footer muestra únicamente `© Skinet {año actual}`.
+- [x] `app/components/TemplateMenu.vue` ya no existe en el repo.
+- [x] `app/pages/index.vue` no contiene el Hero/features/CTA del template original.
+- [x] El `<title>` de la página es "Skinet" y la descripción SEO ya no menciona "Nuxt Starter Template".
+- [x] No hay referencias rotas a `TemplateMenu` ni a assets del template (ej. `ogImage` del starter) en el código.
+- [x] La app levanta sin errores en consola del navegador ni del servidor de desarrollo.
 
 ---
 
