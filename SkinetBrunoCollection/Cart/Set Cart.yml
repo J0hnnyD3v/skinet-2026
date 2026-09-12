@@ -1,0 +1,33 @@
+info:
+  name: Set Cart
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{host}}/cart"
+  body:
+    type: json
+    data: |-
+      {
+        "id": "{{cartKey}}",
+        "items": [
+          {
+            "productId": 1,
+            "productName": "Angular Speedster Board 23",
+            "price": 200,
+            "quantity": 2,
+            "pictureUrl": "https://example.com/board.png",
+            "brand": "Boarder",
+            "type": "Boards"
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

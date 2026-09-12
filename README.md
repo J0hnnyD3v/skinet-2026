@@ -917,3 +917,103 @@ Defaults si se omiten: `pageIndex=1`, `pageSize=6`.
 ### Pendientes
 
 Ver `REVIEW.md` en la raíz del repo — lista de mejoras abiertas clasificadas por urgencia (CORS sin restringir por entorno, falta de DTOs en los endpoints de `Product`, etc).
+
+---
+
+## Sección: Carrito de Compras (Redis)
+
+Resumen: infraestructura de Redis en `docker-compose.yml`, entidades `ShoppingCart`/`CartItem` en `Core`, `CartService` (Infrastructure) y `CartController` (API) para persistir el carrito de un cliente sin necesidad de una tabla SQL — el carrito es efímero y no necesita las garantías transaccionales de una base relacional.
+
+### Objetivo
+
+Guardar/leer/borrar el carrito de compras de un cliente en Redis, identificado por un `key`/`Id` de string, sin todavía resolver auth ni la identificación real del cliente (queda pendiente, ver abajo).
+
+### 1. Redis en `docker-compose.yml`
+
+```yaml
+redis:
+  image: redis:7-alpine
+  container_name: skinet-redis
+  ports:
+    - "6379:6379"
+  volumes:
+    - redis-data:/data
+```
+
+De paso se pinnearon las dos imágenes del compose (`azure-sql-edge:1.0.7`, `redis:7-alpine` — ambas con soporte `arm64` confirmado) en vez de `:latest`, para que un `pull` futuro no cambie de versión sin avisar.
+
+### 2. Entidades del dominio (`Core/Entities`)
+
+```csharp
+public class ShoppingCart
+{
+    public required string Id { get; set; }
+    public List<CartItem> Items { get; set; } = [];
+}
+
+public class CartItem
+{
+    public int ProductId { get; set; }
+    public required string ProductName { get; set; }
+    public decimal Price { get; set; }
+    public int Quantity { get; set; }
+    public required string PictureUrl { get; set; }
+    public required string Brand { get; set; }
+    public required string Type { get; set; }
+}
+```
+
+A diferencia de `Product`, estas no son entidades EF — nunca tocan `StoreContext`, solo se serializan a JSON para guardarse en Redis. Por eso `CartController` las bindea directo en vez de pasar por un DTO espejo: no hay riesgo de exponer tracking de EF ni navegaciones, así que un DTO idéntico sería boilerplate sin beneficio.
+
+### 3. `CartService` (Infrastructure) — acceso a Redis vía `StackExchange.Redis`
+
+```csharp
+public class CartService(IConnectionMultiplexer redis) : ICartService
+{
+    private static readonly TimeSpan CartExpiration = TimeSpan.FromDays(30);
+    private readonly IDatabase _database = redis.GetDatabase();
+
+    public async Task<ShoppingCart?> GetCartAsync(string key)
+    {
+        var data = await _database.StringGetAsync(key);
+        return data.IsNullOrEmpty ? null : JsonSerializer.Deserialize<ShoppingCart>((byte[])data!);
+    }
+
+    public async Task<ShoppingCart?> SetCartAsync(ShoppingCart cart)
+    {
+        var json = JsonSerializer.Serialize(cart);
+        var created = await _database.StringSetAsync(cart.Id, json, CartExpiration);
+        return created ? cart : null;
+    }
+
+    public async Task<bool> DeleteCartAsync(string key)
+        => await _database.KeyDeleteAsync(key);
+}
+```
+
+Puntos de diseño:
+
+- **`IConnectionMultiplexer` es `Singleton`** en `Program.cs` (no `Scoped`) — es la conexión a Redis en sí, cara de crear y thread-safe; se comparte para toda la vida de la app. `CartService` sí es `Scoped`, como el resto de servicios por-request.
+- **`ShoppingCart?`/`byte[]` explícito al deserializar** — `RedisValue` tiene conversiones implícitas a `string` y a `byte[]`/`ReadOnlySpan<byte>` a la vez, lo cual hace ambiguo el overload de `JsonSerializer.Deserialize` si no se castea explícito.
+- **TTL de 30 días** en el `Set` — Redis no es almacenamiento permanente; un carrito abandonado no debe vivir para siempre. (Pendiente: el TTL no se renueva en `GetCartAsync`, ver `REVIEW.md`.)
+- **`SetCartAsync` verifica el resultado de `StringSetAsync`** y devuelve `null` si la escritura falló, en vez de asumir éxito.
+
+### 4. `CartController` (API)
+
+| Método | Ruta | Acción |
+|---|---|---|
+| GET | `/api/cart?key={key}` | `GetCartAsync` |
+| POST | `/api/cart` (body: `ShoppingCart`) | `SetCartAsync` (crea o sobreescribe) |
+| DELETE | `/api/cart?key={key}` | `DeleteCartAsync` |
+
+Un solo `POST` cubre crear y actualizar — a diferencia de `Product` (`POST`/`PUT` separados), Redis no distingue "existe/no existe" al hacer `Set`: siempre sobreescribe la clave completa.
+
+**Pendiente importante:** `key` lo manda el cliente sin ninguna validación de que sea "su" carrito — cualquiera que conozca el `key` puede leer/sobreescribir ese carrito. La solución estándar (una cookie `buyerId` anónima generada por el servidor) se discutió pero quedó fuera del alcance de esta sección. Ver `REVIEW.md`.
+
+### 5. Colección Bruno
+
+Se agregó la carpeta `Cart/` (`Get Cart`, `Set Cart`, `Delete Cart`) a `SkinetBrunoCollection/`, reusando una variable de entorno `cartKey` (`environments/localhost.yml`) para compartir el mismo `Id` de prueba entre los tres requests.
+
+### Pendientes de esta sección
+
+Ver `REVIEW.md`: falta de validación de dueño del carrito, `CartItem.Quantity` sin rango válido, TTL sin renovar en lectura.

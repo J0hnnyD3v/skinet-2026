@@ -3,3 +3,6 @@ variables:
   - name: host
     value: https://localhost:7075/api
     description: ""
+  - name: cartKey
+    value: test-cart-1
+    description: "Id de carrito de prueba (temporal, hasta que exista el buyerId real vía cookie)"

@@ -7,12 +7,15 @@
 ## 🟡 Media (mejoras antes de crecer con más recursos/auth)
 
 - [ ] **`ErrorController.cs`** — `UseStatusCodePagesWithReExecute` dispara para cualquier status sin body (401, 403, 405...), pero solo mapea 404 y "todo lo demás → `ServerError`". Cuando agregues auth, sumar casos explícitos para 401/403.
+- [ ] **`CartController.SetCart` no valida dueño del carrito** — cualquiera que tenga el `key`/`Id` puede leer o sobreescribir ese carrito en Redis; no hay nada que lo ate a "este cliente específico". Pendiente hasta que se implemente el mecanismo real de identificación (cookie `buyerId` anónima, discutido pero no implementado) o auth.
 
 ## 🟢 Baja (housekeeping / no bloquea nada)
 
 - [ ] **Sin tests** — ni unitarios ni de integración todavía.
 - [ ] **`GetBrands`/`GetTypes` sin cache** — pegan a la DB (`SELECT DISTINCT`) en cada request; cambian poco, buen candidato a cachear en memoria si el catálogo escala.
 - [ ] **Filtro `brand`/`type`/`search` depende de la collation de SQL Server** (`ProductRepository.cs`) — igualdad exacta (`brand`/`type`) y `Contains` (`search`) confían en que la DB use collation case-insensitive (confirmado hoy: `SQL_Latin1_General_CP1_CI_AS`), sin normalización explícita en código. Si algún día cambia la collation de la DB, esto se rompe silenciosamente.
+- [ ] **`CartItem.Quantity` sin validación** — nada impide mandar `Quantity: 0` o negativo vía `CartController.SetCart`. Se discutió agregar `[Range(1, ...)]` pero se dejó fuera del alcance inicial del controller.
+- [ ] **TTL del carrito no se renueva en `GetCartAsync`** — `CartService` fija 30 días de expiración solo en `SetCartAsync`; si un cliente solo lee el carrito (sin modificarlo) durante ese período, puede expirar mientras sigue "activo". Considerar renovar el TTL en cada `GetCartAsync` si se vuelve un problema real.
 
 ## ⚠️ Riesgos aceptados (expuestos, no resueltos — decisión consciente de no actuar por ahora)
 
@@ -35,3 +38,4 @@
 - [x] **Credenciales fuera de archivos trackeados** — connection string movida a `dotnet user-secrets` (`API.csproj` solo tiene el `UserSecretsId`, sin secretos); `MSSQL_SA_PASSWORD` de `docker-compose.yml` movida a `.env` (gitignorado) + `.env.example` con placeholder para quien clone el repo.
 - [x] **Paginación en `GetProducts`** — `pageIndex`/`pageSize` (default 1/6, tope `MaxPageSize=50`) resueltos en `ProductRepository` con `Skip`/`Take` antes de materializar la query; respuesta envuelta en `Pagination<T>` (`API/Dtos/Pagination.cs`). Ver README sección 13.
 - [x] **`JsonSerializerOptions` recreado por excepción** en `ExceptionMiddleware.cs` — ahora es `static readonly JsonOptions`, se crea una sola vez en vez de en cada excepción.
+- [x] **`docker-compose.yml`: bug de `redis-data` no declarado + imágenes sin pin** — se agregó el servicio `redis` (`redis:7-alpine`, pensado para persistir el carrito de compras — feature aún no implementada) pero faltaba declarar `redis-data` en `volumes:` top-level, lo cual hacía fallar la validación del compose por completo (`invalid compose project`). De paso se pinnearon ambas imágenes (`azure-sql-edge:1.0.7`, `redis:7-alpine`, confirmado soporte `arm64` en ambas) en vez de `:latest`, para evitar romper el entorno de dev con un pull silencioso a futuro.

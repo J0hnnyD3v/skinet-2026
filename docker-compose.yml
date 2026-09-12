@@ -1,6 +1,6 @@
 services:
   sql:
-    image: mcr.microsoft.com/azure-sql-edge:latest
+    image: mcr.microsoft.com/azure-sql-edge:1.0.7
     container_name: skinet-sql
     environment:
       ACCEPT_EULA: "Y"
@@ -9,6 +9,14 @@ services:
       - "1433:1433"
     volumes:
       - sql-data:/var/opt/mssql
+  redis:
+    image: redis:7-alpine
+    container_name: skinet-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
 
 volumes:
   sql-data:
+  redis-data:

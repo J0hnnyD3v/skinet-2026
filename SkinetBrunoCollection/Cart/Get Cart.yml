@@ -1,17 +1,14 @@
 info:
-  name: Get all products
+  name: Get Cart
   type: http
   seq: 1
 
 http:
   method: GET
-  url: "{{host}}/product?pageSize=300&search=porttitor"
+  url: "{{host}}/cart?key={{cartKey}}"
   params:
-    - name: pageSize
-      value: "300"
-      type: query
-    - name: search
-      value: porttitor
+    - name: key
+      value: "{{cartKey}}"
       type: query
   auth: inherit
 
