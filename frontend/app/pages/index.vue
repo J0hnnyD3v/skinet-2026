@@ -1,19 +1,49 @@
 <script setup lang="ts">
 import type { ProductFilters } from '~/types/product-filters'
+import type { ProductSort } from '~/types/product-sort'
 
 const filters = ref<ProductFilters>({ brands: [], types: [] })
 const filtersModalOpen = ref(false)
+const sort = ref<ProductSort>(undefined)
 
-const { products, pending, error } = useProducts(filters)
+const { products, pending, error } = useProducts(filters, sort)
 
 function applyFilters(newFilters: ProductFilters) {
   filters.value = newFilters
 }
+
+const sortOptions = computed(() => [
+  {
+    label: 'Sort by',
+    type: 'label' as const
+  },
+  {
+    label: 'Alphabetical',
+    icon: 'i-lucide-arrow-down-a-z',
+    color: 'primary' as const,
+    active: sort.value === undefined,
+    onSelect: () => { sort.value = undefined }
+  },
+  {
+    label: 'Price: Low-High',
+    icon: 'i-lucide-arrow-up-narrow-wide',
+    color: 'primary' as const,
+    active: sort.value === 'priceAsc',
+    onSelect: () => { sort.value = 'priceAsc' }
+  },
+  {
+    label: 'Price: High-Low',
+    icon: 'i-lucide-arrow-down-wide-narrow',
+    color: 'primary' as const,
+    active: sort.value === 'priceDesc',
+    onSelect: () => { sort.value = 'priceDesc' }
+  }
+])
 </script>
 
 <template>
   <UContainer class="max-w-none py-8">
-    <div class="flex justify-end mb-6">
+    <div class="flex justify-end gap-3 mb-6">
       <UButton
         icon="i-lucide-sliders-horizontal"
         color="primary"
@@ -24,6 +54,22 @@ function applyFilters(newFilters: ProductFilters) {
       >
         Filters
       </UButton>
+
+      <UDropdownMenu
+        :items="sortOptions"
+        size="lg"
+        :ui="{ content: 'w-56', item: 'py-2.5' }"
+      >
+        <UButton
+          icon="i-lucide-arrow-up-down"
+          color="primary"
+          variant="subtle"
+          size="lg"
+          class="rounded-lg font-semibold shadow-sm hover:shadow-md transition-shadow"
+        >
+          Sort
+        </UButton>
+      </UDropdownMenu>
     </div>
 
     <ProductFiltersModal
