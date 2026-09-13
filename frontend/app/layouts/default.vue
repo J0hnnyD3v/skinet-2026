@@ -1,6 +1,13 @@
+<script setup lang="ts">
+const mobileNavOpen = ref(false)
+</script>
+
 <template>
   <section>
-    <UHeader>
+    <UHeader
+      :toggle="false"
+      :ui="{ container: 'max-w-none' }"
+    >
       <template #left>
         <NuxtLink
           to="/"
@@ -9,26 +16,37 @@
           <AppLogo />
         </NuxtLink>
 
-        <NuxtLink
-          to="/"
-          class="text-sm font-medium"
-        >
-          Home
-        </NuxtLink>
+        <nav class="hidden sm:flex items-center gap-6">
+          <NuxtLink
+            to="/"
+            class="text-sm font-medium"
+          >
+            Home
+          </NuxtLink>
 
-        <NuxtLink
-          to="/shop"
-          class="text-sm font-medium"
-        >
-          Shop
-        </NuxtLink>
+          <NuxtLink
+            to="/shop"
+            class="text-sm font-medium"
+          >
+            Shop
+          </NuxtLink>
 
-        <NuxtLink
-          to="/contact"
-          class="text-sm font-medium"
-        >
-          Contact
-        </NuxtLink>
+          <NuxtLink
+            to="/contact"
+            class="text-sm font-medium"
+          >
+            Contact
+          </NuxtLink>
+        </nav>
+
+        <UButton
+          icon="i-lucide-menu"
+          aria-label="Abrir menú"
+          color="neutral"
+          variant="ghost"
+          class="sm:hidden"
+          @click="mobileNavOpen = true"
+        />
       </template>
 
       <template #right>
@@ -61,6 +79,39 @@
         <UColorModeButton />
       </template>
     </UHeader>
+
+    <USlideover
+      v-model:open="mobileNavOpen"
+      title="Menú"
+    >
+      <template #body>
+        <div class="flex flex-col gap-4">
+          <NuxtLink
+            to="/"
+            class="text-sm font-medium"
+            @click="mobileNavOpen = false"
+          >
+            Home
+          </NuxtLink>
+
+          <NuxtLink
+            to="/shop"
+            class="text-sm font-medium"
+            @click="mobileNavOpen = false"
+          >
+            Shop
+          </NuxtLink>
+
+          <NuxtLink
+            to="/contact"
+            class="text-sm font-medium"
+            @click="mobileNavOpen = false"
+          >
+            Contact
+          </NuxtLink>
+        </div>
+      </template>
+    </USlideover>
 
     <UMain>
       <slot />

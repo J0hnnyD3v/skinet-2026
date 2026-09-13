@@ -18,7 +18,7 @@ const formattedPrice = computed(() =>
 </script>
 
 <template>
-  <UCard>
+  <UCard class="shadow-md hover:shadow-lg dark:shadow-lg dark:shadow-primary/10 dark:hover:shadow-primary/30 dark:hover:ring-2 dark:hover:ring-primary/60 transition-all">
     <template #header>
       <div class="aspect-square flex items-center justify-center bg-muted rounded-md overflow-hidden">
         <img
@@ -37,26 +37,28 @@ const formattedPrice = computed(() =>
     </template>
 
     <div class="flex flex-col gap-2">
-      <h3 class="font-medium truncate">
+      <h3 class="text-lg font-semibold truncate">
         {{ product.name }}
       </h3>
 
       <div class="flex gap-1 flex-wrap">
         <UBadge
           color="neutral"
-          variant="subtle"
+          variant="soft"
+          size="sm"
         >
           {{ product.brand }}
         </UBadge>
         <UBadge
           color="neutral"
-          variant="subtle"
+          variant="soft"
+          size="sm"
         >
           {{ product.type }}
         </UBadge>
       </div>
 
-      <p class="font-semibold">
+      <p class="text-xl font-bold">
         {{ formattedPrice }}
       </p>
     </div>

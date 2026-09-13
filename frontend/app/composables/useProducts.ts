@@ -18,7 +18,7 @@ export function useProducts() {
 
   const { data, pending, error } = useFetch<ApiResponse<Pagination<Product>>>(
     `${config.public.apiBase}/product`,
-    { query: { pageSize: 10 } }
+    { query: { pageSize: 10 }, server: false }
   )
 
   const products = computed(() => data.value?.data.items ?? [])

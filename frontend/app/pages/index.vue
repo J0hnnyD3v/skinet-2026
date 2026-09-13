@@ -3,7 +3,7 @@ const { products, pending, error } = useProducts()
 </script>
 
 <template>
-  <UContainer class="py-8">
+  <UContainer class="max-w-none py-8">
     <p
       v-if="error"
       class="text-muted"
@@ -13,7 +13,7 @@ const { products, pending, error } = useProducts()
 
     <div
       v-else
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+      class="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-6"
     >
       <template v-if="pending">
         <USkeleton
