@@ -61,6 +61,16 @@ const formattedPrice = computed(() =>
       <p class="text-xl font-bold">
         {{ formattedPrice }}
       </p>
+
+      <UButton
+        icon="i-lucide-shopping-cart"
+        color="primary"
+        size="lg"
+        block
+        class="font-semibold rounded-lg shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
+      >
+        Add to cart
+      </UButton>
     </div>
   </UCard>
 </template>

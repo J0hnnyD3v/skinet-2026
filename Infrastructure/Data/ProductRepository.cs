@@ -28,18 +28,18 @@ public class ProductRepository(StoreContext context) : IProductRepository
         return await context.Products.FindAsync(id);
     }
 
-    public async Task<(IReadOnlyList<Product> Items, int Count)> GetProductsAsync(string? brand, string? type, string? sort, string? search, int pageIndex, int pageSize)
+    public async Task<(IReadOnlyList<Product> Items, int Count)> GetProductsAsync(IReadOnlyList<string>? brand, IReadOnlyList<string>? type, string? sort, string? search, int pageIndex, int pageSize)
     {
         var query = context.Products.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(brand))
+        if (brand is { Count: > 0 })
         {
-            query = query.Where(x => x.Brand == brand);
+            query = query.Where(x => brand.Contains(x.Brand));
         }
 
-        if (!string.IsNullOrWhiteSpace(type))
+        if (type is { Count: > 0 })
         {
-            query = query.Where(x => x.Type == type);
+            query = query.Where(x => type.Contains(x.Type));
         }
 
         if (!string.IsNullOrWhiteSpace(search))

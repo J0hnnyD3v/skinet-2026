@@ -1,4 +1,5 @@
 import type { Product } from '~/types/product'
+import type { ProductFilters } from '~/types/product-filters'
 
 interface Pagination<T> {
   pageIndex: number
@@ -13,12 +14,19 @@ interface ApiResponse<T> {
   data: T
 }
 
-export function useProducts() {
+export function useProducts(filters: Ref<ProductFilters>) {
   const config = useRuntimeConfig()
 
   const { data, pending, error } = useFetch<ApiResponse<Pagination<Product>>>(
     `${config.public.apiBase}/product`,
-    { query: { pageSize: 10 }, server: false }
+    {
+      query: computed(() => ({
+        pageSize: 10,
+        brand: filters.value.brands,
+        type: filters.value.types
+      })),
+      server: false
+    }
   )
 
   const products = computed(() => data.value?.data.items ?? [])
